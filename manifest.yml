@@ -1,0 +1,62 @@
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: sachac
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: quelpoke
+  namespace: sachac
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: quelpoke
+  template:
+    metadata:
+      labels:
+        app: quelpoke
+    spec:
+      containers:
+      - name: quelpoke
+        image: europe-west9-docker.pkg.dev/cs-poc-hpzdycpiqjyvinhrczvlwcn/student-sachac/quelpoke@sha256:17315ae8131cac69ebfa95e68aef7a598197ca105bcda90cde9ae6735ed3b597
+        ports:
+        - containerPort: 8080
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: quelpoke
+  namespace: sachac
+spec:
+  selector:
+    app: quelpoke
+  ports:
+  - port: 8080
+    targetPort: 8080
+    protocol: TCP
+  type: ClusterIP
+
+---
+apiVersion: gateway.networking.k8s.io/v1beta1
+kind: HTTPRoute
+metadata:
+  name: quelpoke-route
+  namespace: sachac
+spec:
+  parentRefs:
+  - kind: Gateway
+    name: external-http-gateway     # ✅ TA PAS BESOIN DE LE CRÉER
+    namespace: infra                # ✅ DOIT EXISTER DEJA
+  rules:
+  - matches:
+    - path:
+        type: PathPrefix
+        value: /sachac             # ✅ URL finale = http(s)://IP_GATEWAY/sachac
+    backendRefs:
+    - name: quelpoke
+      port: 8080
